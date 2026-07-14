@@ -24,6 +24,18 @@ Web sederhana: dashboard -> pilih Sender atau Receiver -> Sender nulis teks -> R
    - Satu device pilih Sender, satu lagi pilih Receiver
    - Kirim teks dari Sender, Receiver bakal otomatis nampilin dalam 2 detik
 
+## Fitur
+
+- **Sender** — kotak teks besar buat kirim teks/angka, tombol reset buat hapus semua pesan (termasuk history)
+- **Receiver** — nampilin pesan terbaru + list **History** semua pesan yang pernah masuk (di bawahnya), auto-refresh tiap 2 detik, tombol reset juga tersedia di sini
+- Reset berlaku global — pesan yang dihapus dari Sender atau Receiver, dua-duanya sama-sama ke-reset (karena satu channel bersama)
+
+## Fitur baru
+
+- **Reset pesan** — tombol di Sender maupun Receiver buat hapus pesan yang lagi tampil di Receiver (tidak menghapus history).
+- **Hapus semua (history)** — tombol di panel History buat menghapus seluruh riwayat pesan.
+- **History** — daftar pesan yang pernah masuk (maksimal 30 terakhir), muncul di bawah panel Receiver, urut dari yang terbaru.
+
 ## Catatan
 
 - Tanpa Vercel KV terhubung, app tetap bisa jalan pakai fallback memory sementara, TAPI datanya bisa hilang/tidak sinkron antar server serverless yang berbeda — jadi untuk pemakaian sungguhan, **KV wajib disambungkan**.

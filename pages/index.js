@@ -1,47 +1,63 @@
 import { useEffect, useRef, useState } from 'react';
 
-const ACCENT = '#e9b53d';
-const GREEN = '#5a9b82';
-const PANEL_BG = '#171a17';
-const BORDER = 'rgba(233, 230, 220, 0.12)';
+const NAVY = '#1a3a5c';
+const MINT = '#ccffcc';
+const MINT_HOVER = '#b6ffb6';
+const BORDER = '#e5e5e5';
 
-function IconSend() {
+function Header() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="22" y1="2" x2="11" y2="13" />
-      <polygon points="22 2 15 22 11 13 2 9 22 2" />
-    </svg>
-  );
-}
-function IconInbox() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
-      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
-    </svg>
-  );
-}
-function IconArrowLeft() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="19" y1="12" x2="5" y2="12" />
-      <polyline points="12 19 5 12 12 5" />
-    </svg>
-  );
-}
-
-function StatusDot({ active, color }) {
-  return (
-    <span
+    <header
       style={{
-        display: 'inline-block',
-        width: 7,
-        height: 7,
-        borderRadius: '50%',
-        background: color,
-        animation: active ? 'pulse-dot 1.4s ease-in-out infinite' : 'none',
+        background: NAVY,
+        height: 64,
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 30px',
+        color: 'white',
+        boxShadow: '0 2px 8px rgba(0,0,0,.2)',
       }}
-    />
+    >
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 8,
+          background: MINT,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: NAVY,
+          fontWeight: 'bold',
+          marginRight: 15,
+          fontSize: 18,
+        }}
+      >
+        ⇄
+      </div>
+      <h2 style={{ margin: 0, fontSize: 18 }}>Relay Console</h2>
+    </header>
+  );
+}
+
+function BackLink({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: 'transparent',
+        border: 'none',
+        color: '#888',
+        fontSize: 13,
+        padding: 0,
+        marginBottom: 20,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+      }}
+    >
+      ← Kembali
+    </button>
   );
 }
 
@@ -51,8 +67,9 @@ export default function Home() {
   const [sending, setSending] = useState(false);
   const [sendStatus, setSendStatus] = useState('');
   const [received, setReceived] = useState(null);
+  const [history, setHistory] = useState([]);
   const [receiveStatus, setReceiveStatus] = useState('waiting');
-  const [justArrived, setJustArrived] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const pollRef = useRef(null);
   const lastIdRef = useRef(null);
 
@@ -69,16 +86,13 @@ export default function Home() {
       const res = await fetch('/api/message');
       const data = await res.json();
       if (data.message) {
-        if (data.message.id !== lastIdRef.current) {
-          lastIdRef.current = data.message.id;
-          setReceived(data.message);
-          setJustArrived(true);
-          setTimeout(() => setJustArrived(false), 900);
-        }
-        setReceiveStatus('ok');
+        lastIdRef.current = data.message.id;
+        setReceived(data.message);
       } else {
-        setReceiveStatus('waiting');
+        setReceived(null);
       }
+      setHistory(data.history || []);
+      setReceiveStatus('ok');
     } catch (e) {
       setReceiveStatus('error');
     }
@@ -88,7 +102,7 @@ export default function Home() {
     const trimmed = text.trim();
     if (!trimmed || sending) return;
     setSending(true);
-    setSendStatus('transmitting');
+    setSendStatus('mengirim…');
     try {
       const res = await fetch('/api/message', {
         method: 'POST',
@@ -97,228 +111,219 @@ export default function Home() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setSendStatus('error: ' + (data.error || 'unknown'));
+        setSendStatus('gagal: ' + (data.error || 'unknown'));
       } else {
-        setSendStatus('sent');
+        setSendStatus('terkirim');
         setText('');
         setTimeout(() => setSendStatus(''), 1800);
       }
     } catch (e) {
-      setSendStatus('error: ' + e.message);
+      setSendStatus('gagal: ' + e.message);
     }
     setSending(false);
   }
 
+  async function handleReset(withHistory) {
+    if (resetting) return;
+    setResetting(true);
+    try {
+      await fetch('/api/message' + (withHistory ? '?history=1' : ''), { method: 'DELETE' });
+      setReceived(null);
+      if (withHistory) setHistory([]);
+      setSendStatus('pesan direset');
+      setTimeout(() => setSendStatus(''), 1500);
+    } catch (e) {
+      setSendStatus('gagal reset: ' + e.message);
+    }
+    setResetting(false);
+  }
+
+  const cardStyle = {
+    background: 'white',
+    borderRadius: 15,
+    padding: 30,
+    border: `1px solid ${BORDER}`,
+    boxShadow: '0 2px 10px rgba(0,0,0,.08)',
+  };
+
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 440,
-          background: PANEL_BG,
-          border: `1px solid ${BORDER}`,
-          borderRadius: 16,
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            padding: '14px 20px',
-            borderBottom: `1px solid ${BORDER}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <span className="mono" style={{ fontSize: 11, letterSpacing: '0.15em', color: '#8a8f83' }}>
-            RELAY // 01
-          </span>
-          <StatusDot active color={view === 'sender' ? ACCENT : view === 'receiver' ? GREEN : '#6b6f66'} />
-        </div>
+    <div style={{ minHeight: '100vh' }}>
+      <Header />
 
-        <div style={{ padding: 28, minHeight: 420, display: 'flex', flexDirection: 'column' }}>
-          {view === 'dashboard' && (
-            <>
-              <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 6px' }}>Choose a role</h1>
-              <p style={{ fontSize: 14, color: '#9a9d92', margin: '0 0 28px', lineHeight: 1.6 }}>
-                Pick a side of the channel before you begin.
-              </p>
+      <div style={{ maxWidth: 560, margin: '50px auto', padding: '0 20px' }}>
+        {view === 'dashboard' && (
+          <>
+            <div style={{ textAlign: 'center', marginBottom: 36 }}>
+              <h2 style={{ margin: 0, color: NAVY }}>Pilih peran</h2>
+              <p style={{ color: '#666', margin: '6px 0 0' }}>Mau jadi pengirim atau penerima?</p>
+            </div>
 
-              <button
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
+              <div
+                style={{ ...cardStyle, cursor: 'pointer', transition: '.25s' }}
                 onClick={() => setView('sender')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  padding: '18px 18px',
-                  marginBottom: 12,
-                  background: 'transparent',
-                  border: `1px solid ${BORDER}`,
-                  borderRadius: 12,
-                  color: '#e9e6dc',
-                  textAlign: 'left',
-                  transition: 'border-color 0.15s, background 0.15s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = ACCENT; e.currentTarget.style.background = 'rgba(233,181,61,0.06)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.background = 'transparent'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,.12)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,.08)'; }}
               >
-                <span style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(233,181,61,0.12)', color: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <IconSend />
-                </span>
-                <span>
-                  <div style={{ fontSize: 15, fontWeight: 500 }}>Sender</div>
-                  <div className="mono" style={{ fontSize: 12, color: '#8a8f83', marginTop: 2 }}>write and transmit</div>
-                </span>
-              </button>
-
-              <button
-                onClick={() => setView('receiver')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  padding: '18px 18px',
-                  background: 'transparent',
-                  border: `1px solid ${BORDER}`,
-                  borderRadius: 12,
-                  color: '#e9e6dc',
-                  textAlign: 'left',
-                  transition: 'border-color 0.15s, background 0.15s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = GREEN; e.currentTarget.style.background = 'rgba(90,155,130,0.08)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.background = 'transparent'; }}
-              >
-                <span style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(90,155,130,0.14)', color: GREEN, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <IconInbox />
-                </span>
-                <span>
-                  <div style={{ fontSize: 15, fontWeight: 500 }}>Receiver</div>
-                  <div className="mono" style={{ fontSize: 12, color: '#8a8f83', marginTop: 2 }}>listen for incoming</div>
-                </span>
-              </button>
-            </>
-          )}
-
-          {view === 'sender' && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: ACCENT }}><IconSend /></span>
-                  <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Sender</h1>
-                </div>
-                <button
-                  onClick={() => setView('dashboard')}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    background: 'transparent', border: `1px solid ${BORDER}`, borderRadius: 8,
-                    color: '#9a9d92', fontSize: 12, padding: '6px 10px',
-                  }}
-                >
-                  <IconArrowLeft /> back
+                <div style={{ width: 60, height: 60, borderRadius: 14, background: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, marginBottom: 16 }}>📤</div>
+                <h3 style={{ margin: '0 0 8px', color: NAVY }}>Sender</h3>
+                <p style={{ color: '#666', fontSize: 14, lineHeight: 1.6, margin: 0 }}>Tulis dan kirim teks atau angka ke penerima.</p>
+                <button className="open-btn" style={{ marginTop: 20, width: '100%', background: MINT, color: NAVY, border: 'none', borderRadius: 10, padding: 13, fontWeight: 'bold' }}>
+                  Buka
                 </button>
-              </div>
-
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="type your message or number here..."
-                style={{
-                  flex: 1,
-                  minHeight: 220,
-                  resize: 'vertical',
-                  fontSize: 15,
-                  lineHeight: 1.7,
-                  padding: 16,
-                  borderRadius: 10,
-                  border: `1px solid ${BORDER}`,
-                  background: '#0f1210',
-                  color: '#e9e6dc',
-                }}
-              />
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
-                <span className="mono" style={{ fontSize: 12, color: sendStatus.startsWith('error') ? '#e07a5f' : '#8a8f83' }}>
-                  {sendStatus === 'sent' && '✓ sent'}
-                  {sendStatus === 'transmitting' && 'transmitting…'}
-                  {sendStatus.startsWith('error') && sendStatus}
-                  {!sendStatus && `${text.length} chars`}
-                </span>
-                <button
-                  onClick={handleSend}
-                  disabled={sending || !text.trim()}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    background: ACCENT, border: 'none', borderRadius: 10,
-                    color: '#1a1600', fontWeight: 500, fontSize: 14,
-                    padding: '11px 20px',
-                  }}
-                >
-                  Transmit <IconSend />
-                </button>
-              </div>
-            </>
-          )}
-
-          {view === 'receiver' && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: GREEN }}><IconInbox /></span>
-                  <h1 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Receiver</h1>
-                </div>
-                <button
-                  onClick={() => setView('dashboard')}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    background: 'transparent', border: `1px solid ${BORDER}`, borderRadius: 8,
-                    color: '#9a9d92', fontSize: 12, padding: '6px 10px',
-                  }}
-                >
-                  <IconArrowLeft /> back
-                </button>
-              </div>
-
-              <div className="mono" style={{ fontSize: 11, color: '#8a8f83', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <StatusDot active color={receiveStatus === 'ok' ? GREEN : receiveStatus === 'error' ? '#e07a5f' : ACCENT} />
-                {receiveStatus === 'ok' && received && `received ${new Date(received.time).toLocaleTimeString()}`}
-                {receiveStatus === 'waiting' && 'listening for transmission'}
-                {receiveStatus === 'error' && 'connection error'}
               </div>
 
               <div
+                style={{ ...cardStyle, cursor: 'pointer', transition: '.25s' }}
+                onClick={() => setView('receiver')}
+                onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,.12)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,0,0,.08)'; }}
+              >
+                <div style={{ width: 60, height: 60, borderRadius: 14, background: '#e8f5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, marginBottom: 16 }}>📥</div>
+                <h3 style={{ margin: '0 0 8px', color: NAVY }}>Receiver</h3>
+                <p style={{ color: '#666', fontSize: 14, lineHeight: 1.6, margin: 0 }}>Terima teks yang dikirim, otomatis update.</p>
+                <button className="open-btn" style={{ marginTop: 20, width: '100%', background: MINT, color: NAVY, border: 'none', borderRadius: 10, padding: 13, fontWeight: 'bold' }}>
+                  Buka
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {view === 'sender' && (
+          <div style={cardStyle}>
+            <BackLink onClick={() => setView('dashboard')} />
+            <h3 style={{ margin: '0 0 4px', color: NAVY }}>Sender</h3>
+            <p style={{ color: '#666', fontSize: 14, margin: '0 0 20px' }}>Tulis pesan, lalu kirim ke receiver.</p>
+
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Tulis teks atau angka di sini…"
+              style={{
+                width: '100%',
+                minHeight: 200,
+                resize: 'vertical',
+                fontSize: 15,
+                lineHeight: 1.6,
+                padding: 14,
+                borderRadius: 10,
+                border: `1px solid ${BORDER}`,
+                background: '#fafbfc',
+                color: '#1a1a1a',
+              }}
+            />
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
+              <span style={{ fontSize: 13, color: sendStatus.startsWith('gagal') ? '#c0392b' : '#888' }}>
+                {sendStatus || `${text.length} karakter`}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button
+                onClick={handleSend}
+                disabled={sending || !text.trim()}
+                style={{ flex: 1, background: MINT, color: NAVY, border: 'none', borderRadius: 10, padding: 13, fontWeight: 'bold' }}
+                onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.background = MINT_HOVER; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = MINT; }}
+              >
+                Kirim
+              </button>
+              <button
+                onClick={() => handleReset(false)}
+                disabled={resetting}
+                style={{ background: '#ffe3e0', color: '#b3261e', border: 'none', borderRadius: 10, padding: '13px 18px', fontWeight: 'bold' }}
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        )}
+
+        {view === 'receiver' && (
+          <>
+            <div style={cardStyle}>
+              <BackLink onClick={() => setView('dashboard')} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <h3 style={{ margin: 0, color: NAVY }}>Receiver</h3>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#888' }}>
+                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: receiveStatus === 'ok' ? '#4caf50' : '#e0a800', animation: 'pulse-dot 1.4s ease-in-out infinite' }} />
+                  {receiveStatus === 'ok' ? 'terhubung' : 'menyambung…'}
+                </span>
+              </div>
+              <p style={{ color: '#666', fontSize: 14, margin: '0 0 20px' }}>
+                {received ? `Diterima ${new Date(received.time).toLocaleTimeString()}` : 'Belum ada pesan masuk.'}
+              </p>
+
+              <div
                 style={{
-                  flex: 1,
-                  minHeight: 220,
-                  padding: 16,
+                  minHeight: 200,
+                  padding: 14,
                   borderRadius: 10,
-                  border: `1px solid ${justArrived ? GREEN : BORDER}`,
-                  background: '#0f1210',
+                  border: `1px solid ${BORDER}`,
+                  background: '#fafbfc',
                   fontSize: 15,
-                  lineHeight: 1.7,
+                  lineHeight: 1.6,
                   whiteSpace: 'pre-wrap',
                   wordBreak: 'break-word',
                   overflowY: 'auto',
-                  transition: 'border-color 0.3s',
-                  animation: justArrived ? 'slide-in 0.3s ease-out' : 'none',
+                  animation: 'fade-in 0.3s ease-out',
                 }}
               >
-                {received ? received.text : (
-                  <span className="mono" style={{ color: '#54584f' }}>
-                    no signal yet<span style={{ animation: 'blink-caret 1s step-end infinite' }}>_</span>
-                  </span>
-                )}
+                {received ? received.text : <span style={{ color: '#b0b0b0' }}>Menunggu pesan…</span>}
               </div>
-            </>
-          )}
-        </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
+                <button
+                  onClick={() => handleReset(false)}
+                  disabled={resetting}
+                  style={{ background: '#ffe3e0', color: '#b3261e', border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 'bold', fontSize: 13 }}
+                >
+                  Reset pesan
+                </button>
+              </div>
+            </div>
+
+            <div style={{ ...cardStyle, marginTop: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h3 style={{ margin: 0, color: NAVY, fontSize: 16 }}>History</h3>
+                <button
+                  onClick={() => handleReset(true)}
+                  disabled={resetting || history.length === 0}
+                  style={{ background: 'transparent', border: 'none', color: '#b3261e', fontSize: 13, padding: 0 }}
+                >
+                  Hapus semua
+                </button>
+              </div>
+
+              {history.length === 0 && (
+                <p style={{ color: '#b0b0b0', fontSize: 14, margin: 0 }}>Belum ada riwayat pesan.</p>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 260, overflowY: 'auto' }}>
+                {history.map((item) => (
+                  <div
+                    key={item.id}
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: 8,
+                      border: `1px solid ${BORDER}`,
+                      background: item.id === (received && received.id) ? '#f2fff2' : '#fafbfc',
+                    }}
+                  >
+                    <div style={{ fontSize: 11, color: '#999', marginBottom: 4 }}>
+                      {new Date(item.time).toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 14, color: '#1a1a1a', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {item.text}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
