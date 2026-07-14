@@ -70,6 +70,7 @@ export default function Home() {
   const [history, setHistory] = useState([]);
   const [receiveStatus, setReceiveStatus] = useState('waiting');
   const [resetting, setResetting] = useState(false);
+  const [copyStatus, setCopyStatus] = useState('');
   const pollRef = useRef(null);
   const lastIdRef = useRef(null);
 
@@ -136,6 +137,23 @@ export default function Home() {
       setSendStatus('gagal reset: ' + e.message);
     }
     setResetting(false);
+  }
+
+  async function copyTableToClipboard() {
+    if (history.length === 0) return;
+    const rows = [['No', 'Waktu', 'Pesan']];
+    history.forEach((item, idx) => {
+      rows.push([String(history.length - idx), new Date(item.time).toLocaleString(), item.text]);
+    });
+    const tsv = rows.map((r) => r.join('\t')).join('\n');
+    try {
+      await navigator.clipboard.writeText(tsv);
+      setCopyStatus('tersalin ✓');
+      setTimeout(() => setCopyStatus(''), 1800);
+    } catch (e) {
+      setCopyStatus('gagal salin');
+      setTimeout(() => setCopyStatus(''), 1800);
+    }
   }
 
   const cardStyle = {
@@ -242,87 +260,79 @@ export default function Home() {
         )}
 
         {view === 'receiver' && (
-          <>
-            <div style={cardStyle}>
-              <BackLink onClick={() => setView('dashboard')} />
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                <h3 style={{ margin: 0, color: NAVY }}>Receiver</h3>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#888' }}>
-                  <span style={{ width: 7, height: 7, borderRadius: '50%', background: receiveStatus === 'ok' ? '#4caf50' : '#e0a800', animation: 'pulse-dot 1.4s ease-in-out infinite' }} />
-                  {receiveStatus === 'ok' ? 'terhubung' : 'menyambung…'}
-                </span>
-              </div>
-              <p style={{ color: '#666', fontSize: 14, margin: '0 0 20px' }}>
-                {received ? `Diterima ${new Date(received.time).toLocaleTimeString()}` : 'Belum ada pesan masuk.'}
-              </p>
+          <div style={cardStyle}>
+            <BackLink onClick={() => setView('dashboard')} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <h3 style={{ margin: 0, color: NAVY }}>Receiver</h3>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#888' }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: receiveStatus === 'ok' ? '#4caf50' : '#e0a800', animation: 'pulse-dot 1.4s ease-in-out infinite' }} />
+                {receiveStatus === 'ok' ? 'terhubung' : 'menyambung…'}
+              </span>
+            </div>
+            <p style={{ color: '#666', fontSize: 14, margin: '0 0 18px' }}>
+              {received ? `Terakhir masuk ${new Date(received.time).toLocaleTimeString()}` : 'Belum ada pesan masuk.'}
+            </p>
 
-              <div
-                style={{
-                  minHeight: 200,
-                  padding: 14,
-                  borderRadius: 10,
-                  border: `1px solid ${BORDER}`,
-                  background: '#fafbfc',
-                  fontSize: 15,
-                  lineHeight: 1.6,
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  overflowY: 'auto',
-                  animation: 'fade-in 0.3s ease-out',
-                }}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+              <button
+                onClick={copyTableToClipboard}
+                disabled={history.length === 0}
+                style={{ background: MINT, color: NAVY, border: 'none', borderRadius: 10, padding: '9px 16px', fontWeight: 'bold', fontSize: 13 }}
+                onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.background = MINT_HOVER; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = MINT; }}
               >
-                {received ? received.text : <span style={{ color: '#b0b0b0' }}>Menunggu pesan…</span>}
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-                <button
-                  onClick={() => handleReset(false)}
-                  disabled={resetting}
-                  style={{ background: '#ffe3e0', color: '#b3261e', border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 'bold', fontSize: 13 }}
-                >
-                  Reset pesan
-                </button>
-              </div>
+                {copyStatus || 'Salin ke Excel'}
+              </button>
+              <button
+                onClick={() => handleReset(false)}
+                disabled={resetting}
+                style={{ background: '#ffe3e0', color: '#b3261e', border: 'none', borderRadius: 10, padding: '9px 16px', fontWeight: 'bold', fontSize: 13 }}
+              >
+                Reset pesan
+              </button>
+              <button
+                onClick={() => handleReset(true)}
+                disabled={resetting || history.length === 0}
+                style={{ background: 'transparent', border: `1px solid ${BORDER}`, color: '#b3261e', borderRadius: 10, padding: '9px 16px', fontWeight: 'bold', fontSize: 13, marginLeft: 'auto' }}
+              >
+                Hapus semua
+              </button>
             </div>
 
-            <div style={{ ...cardStyle, marginTop: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <h3 style={{ margin: 0, color: NAVY, fontSize: 16 }}>History</h3>
-                <button
-                  onClick={() => handleReset(true)}
-                  disabled={resetting || history.length === 0}
-                  style={{ background: 'transparent', border: 'none', color: '#b3261e', fontSize: 13, padding: 0 }}
-                >
-                  Hapus semua
-                </button>
+            {history.length === 0 ? (
+              <p style={{ color: '#b0b0b0', fontSize: 14, textAlign: 'center', padding: '30px 0' }}>Belum ada riwayat pesan.</p>
+            ) : (
+              <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ maxHeight: 380, overflowY: 'auto' }}>
+                  <table id="receiverTable" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                    <thead>
+                      <tr style={{ background: '#f0f3f6', position: 'sticky', top: 0 }}>
+                        <th style={{ textAlign: 'left', padding: '10px 12px', color: NAVY, fontSize: 12, borderBottom: `1px solid ${BORDER}`, width: 40 }}>No</th>
+                        <th style={{ textAlign: 'left', padding: '10px 12px', color: NAVY, fontSize: 12, borderBottom: `1px solid ${BORDER}`, width: 150 }}>Waktu</th>
+                        <th style={{ textAlign: 'left', padding: '10px 12px', color: NAVY, fontSize: 12, borderBottom: `1px solid ${BORDER}` }}>Pesan</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.map((item, idx) => (
+                        <tr key={item.id} style={{ background: idx === 0 ? '#f2fff2' : 'white' }}>
+                          <td style={{ padding: '9px 12px', borderBottom: `1px solid ${BORDER}`, color: '#888' }}>{history.length - idx}</td>
+                          <td style={{ padding: '9px 12px', borderBottom: `1px solid ${BORDER}`, color: '#888', whiteSpace: 'nowrap' }}>
+                            {new Date(item.time).toLocaleString()}
+                          </td>
+                          <td style={{ padding: '9px 12px', borderBottom: `1px solid ${BORDER}`, color: '#1a1a1a', wordBreak: 'break-word' }}>
+                            {item.text}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-
-              {history.length === 0 && (
-                <p style={{ color: '#b0b0b0', fontSize: 14, margin: 0 }}>Belum ada riwayat pesan.</p>
-              )}
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 260, overflowY: 'auto' }}>
-                {history.map((item) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: 8,
-                      border: `1px solid ${BORDER}`,
-                      background: item.id === (received && received.id) ? '#f2fff2' : '#fafbfc',
-                    }}
-                  >
-                    <div style={{ fontSize: 11, color: '#999', marginBottom: 4 }}>
-                      {new Date(item.time).toLocaleString()}
-                    </div>
-                    <div style={{ fontSize: 14, color: '#1a1a1a', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                      {item.text}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </>
+            )}
+            <p style={{ color: '#aaa', fontSize: 12, marginTop: 10, marginBottom: 0 }}>
+              Tip: klik "Salin ke Excel", lalu paste (Ctrl+V) langsung ke sheet Excel kamu.
+            </p>
+          </div>
         )}
       </div>
     </div>
