@@ -302,32 +302,28 @@ export default function Home() {
             {history.length === 0 ? (
               <p style={{ color: '#b0b0b0', fontSize: 14, textAlign: 'center', padding: '30px 0' }}>Belum ada riwayat pesan.</p>
             ) : (
-              <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, overflow: 'hidden' }}>
-                <div style={{ maxHeight: 380, overflowY: 'auto' }}>
-                  <table id="receiverTable" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-                    <thead>
-                      <tr style={{ background: '#f0f3f6', position: 'sticky', top: 0 }}>
-                        <th style={{ textAlign: 'left', padding: '10px 12px', color: NAVY, fontSize: 12, borderBottom: `1px solid ${BORDER}`, width: 40 }}>No</th>
-                        <th style={{ textAlign: 'left', padding: '10px 12px', color: NAVY, fontSize: 12, borderBottom: `1px solid ${BORDER}`, width: 150 }}>Waktu</th>
-                        <th style={{ textAlign: 'left', padding: '10px 12px', color: NAVY, fontSize: 12, borderBottom: `1px solid ${BORDER}` }}>Pesan</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.map((item, idx) => (
-                        <tr key={item.id} style={{ background: idx === 0 ? '#f2fff2' : 'white' }}>
-                          <td style={{ padding: '9px 12px', borderBottom: `1px solid ${BORDER}`, color: '#888' }}>{history.length - idx}</td>
-                          <td style={{ padding: '9px 12px', borderBottom: `1px solid ${BORDER}`, color: '#888', whiteSpace: 'nowrap' }}>
-                            {new Date(item.time).toLocaleString()}
-                          </td>
-                          <td style={{ padding: '9px 12px', borderBottom: `1px solid ${BORDER}`, color: '#1a1a1a', wordBreak: 'break-word' }}>
-                            {item.text}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
+              <table id="receiverTable" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, border: `1px solid ${BORDER}` }}>
+                <thead>
+                  <tr style={{ background: '#f0f3f6' }}>
+                    <th style={{ textAlign: 'left', padding: '10px 12px', color: NAVY, fontSize: 12, borderBottom: `1px solid ${BORDER}`, width: 40 }}>No</th>
+                    <th style={{ textAlign: 'left', padding: '10px 12px', color: NAVY, fontSize: 12, borderBottom: `1px solid ${BORDER}`, width: 150 }}>Waktu</th>
+                    <th style={{ textAlign: 'left', padding: '10px 12px', color: NAVY, fontSize: 12, borderBottom: `1px solid ${BORDER}` }}>Pesan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((item, idx) => (
+                    <tr key={item.id} style={{ background: idx === 0 ? '#f2fff2' : 'white' }}>
+                      <td style={{ padding: '9px 12px', borderBottom: `1px solid ${BORDER}`, color: '#888' }}>{history.length - idx}</td>
+                      <td style={{ padding: '9px 12px', borderBottom: `1px solid ${BORDER}`, color: '#888', whiteSpace: 'nowrap' }}>
+                        {new Date(item.time).toLocaleString()}
+                      </td>
+                      <td style={{ padding: '9px 12px', borderBottom: `1px solid ${BORDER}`, color: '#1a1a1a', wordBreak: 'break-word' }}>
+                        {item.text}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
             <p style={{ color: '#aaa', fontSize: 12, marginTop: 10, marginBottom: 0 }}>
               Tip: klik "Salin ke Excel", lalu paste (Ctrl+V) langsung ke sheet Excel kamu.
